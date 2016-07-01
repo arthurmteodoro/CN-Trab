@@ -1,8 +1,8 @@
-/* 
+/*
 	Trabalho de Cálculo Numérico - 2016
   Nome : Arthur Alexsander Martins Teodoro    Matricula : 0022427
          Saulo Ricardo Dias Fernandes         Matricula : 0021581
-  Data : 23/06/2016       
+  Data : 23/06/2016
 */
 
 #include <stdio.h>
@@ -40,16 +40,13 @@ int main(int argc, char const *argv[])
 	int i;
 	Points table = carregaArquivo(argv[1]);
 	float *s2 = CalculaDerivadaSpline(table);
-	printf("%f\n", AvaliaSpline(table,s2,1.2));
-	printf("%f\n", AvaliaSpline(table,s2,0.1));
-  printf("%f\n", AvaliaSpline(table,s2,2.9));
-  printf("%f\n", AvaliaSpline(table,s2,5.2));
-  printf("%f\n", AvaliaSpline(table,s2,6.7));
+
+	free(s2);
 	destroiPoints(table);
 	return 0;
 }
 
-/*Função responsável por ler o arquivo*/
+/*Requesito 2 - Ler o arquivo com os valores*/
 Points carregaArquivo(const char *arq)
 {
 	int i, quant = 0;
@@ -115,6 +112,7 @@ void destroiPoints(Points p)
 	p = NULL;
 }
 
+/*Requesito 3 - Calcular as derivadas das Splines*/
 float* CalculaDerivadaSpline(Points p)
 {
   if(p->numPontos < 3)
@@ -165,6 +163,7 @@ float* CalculaDerivadaSpline(Points p)
   return s2;
 }
 
+/*Requesito 4 - Avaliar e Gerar o polinomio da Spline*/
 float AvaliaSpline(Points p, float* s2, float valor)
 {
 	if((valor < p->pontos[1].x) || (valor > p->pontos[p->numPontos].x))
@@ -182,8 +181,6 @@ float AvaliaSpline(Points p, float* s2, float valor)
 	while((sup - inf) > 1)
 	{
 		indice = (inf+sup)/2;
-		//printf("ANTES DO IF\n");
-		//printf("SUP = %d e INF = %d INDICE = %d \n", sup,inf,indice);
 		if(p->pontos[indice].x > valor)
 		{
 			sup = indice;
@@ -192,23 +189,15 @@ float AvaliaSpline(Points p, float* s2, float valor)
 		{
 			inf = indice;
 		}
-		//printf("DEPOIS DO IF\n");
-		//printf("SUP = %d e INF = %d\n", sup,inf);
 	}
-	//printf("INF = %d SUP = %d\n",inf,sup);
+	
 	/*Avaliação de Horner*/
 	h = p->pontos[sup].x - p->pontos[inf].x;
-	//printf("%f\n", h);
-	a = ((s2[sup] - s2[inf])/6)*h;
-	//printf("%f\n", a);
+	a = (s2[sup] - s2[inf])/(6*h);
 	b = s2[inf]*0.5;
-	//printf("%f\n", b);
 	c = ((p->pontos[sup].y - p->pontos[inf].y)/h) - ((s2[sup] + 2*s2[inf])*h/6);
-	//printf("%f\n", c);
 	d = p->pontos[inf].y;
-	//printf("%f\n", d);
 	h = valor - p->pontos[inf].x;
-	//printf("%f\n", h);
 	resultado = ((a*h+b)*h+c)*h+d;
 	return resultado;
 }
