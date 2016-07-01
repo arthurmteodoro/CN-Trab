@@ -7,23 +7,23 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-//#include <math.h>
+#include <math.h>
 
 /*Criação das Estruturas usadas*/
 typedef struct ponto
 {
-	float x;
-	float y;
+	double x;
+	double y;
 } Ponto;
 
 struct points
 {
 	int numPontos;
 	Ponto *pontos;
-	float maiorX;
-	float maiorY;
-	float menorX;
-	float menorY;
+	double maiorX;
+	double maiorY;
+	double menorX;
+	double menorY;
 };
 
 typedef struct points *Points;
@@ -31,16 +31,21 @@ typedef struct points *Points;
 /*Declaração de Protótipos das funções*/
 Points carregaArquivo(const char *arq);
 void destroiPoints(Points p);
-float* CalculaDerivadaSpline(Points p);
-float AvaliaSpline(Points p, float* s2, float valor);
+double* CalculaDerivadaSpline(Points p);
+double AvaliaSpline(Points p, double* s2, double valor);
+double geraNum(double min, double max);
+double IntegralMonteCarlo(long 	int n, Points p, double* s2);
+double TVMI(double a, double b, double integral);
+void SaidaTerminal(Points p, double mem, const char *str);
+void SaidaR(Points p, double med, const char *str);
 
 /*Desenvolvimento das Funções*/
 int main(int argc, char const *argv[])
 {
 	int i;
 	Points table = carregaArquivo(argv[1]);
-	float *s2 = CalculaDerivadaSpline(table);
-
+	double *s2 = CalculaDerivadaSpline(table);
+	SaidaTerminal(table,TVMI(table->menorX,table->maiorX,IntegralMonteCarlo(1000,table,s2)),argv[2]);
 	free(s2);
 	destroiPoints(table);
 	return 0;
@@ -50,7 +55,7 @@ int main(int argc, char const *argv[])
 Points carregaArquivo(const char *arq)
 {
 	int i, quant = 0;
-	float x, y, menorx, menory, maiorx, maiory;
+	double x, y, menorx, menory, maiorx, maiory;
 	Points aux;
 	/*Abre o arquivo para contar quantos pontos existem*/
 	FILE *Arq = fopen(arq,"rt");
@@ -58,7 +63,7 @@ Points carregaArquivo(const char *arq)
 	{
 		return NULL;
 	}
-	while(fscanf(Arq,"%f %f",&x,&y) != EOF)
+	while(fscanf(Arq,"%lf %lf",&x,&y) != EOF)
 	{
 		quant++;
 	}
@@ -71,7 +76,7 @@ Points carregaArquivo(const char *arq)
 	Arq = fopen(arq,"rt");
 	for(i = 1; i <= quant; i++)
 	{
-		fscanf(Arq,"%f %f",&x, &y);
+		fscanf(Arq,"%lf %lf",&x, &y);
 		if(i == 1)
 		{
 			menorx = x;
@@ -113,7 +118,7 @@ void destroiPoints(Points p)
 }
 
 /*Requesito 3 - Calcular as derivadas das Splines*/
-float* CalculaDerivadaSpline(Points p)
+double* CalculaDerivadaSpline(Points p)
 {
   if(p->numPontos < 3)
   {
@@ -121,10 +126,10 @@ float* CalculaDerivadaSpline(Points p)
   }
   /*Declaração das variaveis*/
   int m, i;
-  float Ha, Hb, DeltaA, DeltaB, t;
-  float *e = (float*) malloc(sizeof(float)*(p->numPontos+1));
-  float *d = (float*) malloc(sizeof(float)*(p->numPontos+1));
-  float *s2 = (float*) malloc(sizeof(float)*(p->numPontos+1));
+  double Ha, Hb, DeltaA, DeltaB, t;
+  double *e = (double*) malloc(sizeof(double)*(p->numPontos+1));
+  double *d = (double*) malloc(sizeof(double)*(p->numPontos+1));
+  double *s2 = (double*) malloc(sizeof(double)*(p->numPontos+1));
 
   /*Sistema Tridiagonal Simétrico*/
   m = p->numPontos - 2;
@@ -164,7 +169,7 @@ float* CalculaDerivadaSpline(Points p)
 }
 
 /*Requesito 4 - Avaliar e Gerar o polinomio da Spline*/
-float AvaliaSpline(Points p, float* s2, float valor)
+double AvaliaSpline(Points p, double* s2, double valor)
 {
 	if((valor < p->pontos[1].x) || (valor > p->pontos[p->numPontos].x))
 	{
@@ -173,7 +178,7 @@ float AvaliaSpline(Points p, float* s2, float valor)
 
 	/*Declaração de variaveis*/
 	int inf, sup, indice;
-	float a,b,c,d,h,resultado;
+	double a,b,c,d,h,resultado;
 
 	/*Busca Binaria*/
 	inf = 1;
@@ -198,6 +203,57 @@ float AvaliaSpline(Points p, float* s2, float valor)
 	c = ((p->pontos[sup].y - p->pontos[inf].y)/h) - ((s2[sup] + 2*s2[inf])*h/6);
 	d = p->pontos[inf].y;
 	h = valor - p->pontos[inf].x;
-	resultado = ((a*h+b)*h+c)*h+d;
+	resultado = ((a*h+b)*h+c)*h + d;
 	return resultado;
+}
+
+/*Requesito 5 - Gerador de Números Uniformes*/
+double geraNum(double min, double max)
+{
+	return (rand()/(double)RAND_MAX)*(max-min)+min;
+}
+
+/*Requisito 6 - Integral por MonteCarlo*/
+double IntegralMonteCarlo(long int n, Points p, double* s2)
+{
+	/*Declaração das variaveis*/
+	long int i;
+	double x, y,AreaTotal, Area, xMin, xMax, yMin, yMax, numAbaixo = 0;
+
+	xMin = p->menorX;
+	xMax = p->maiorX;	
+	yMin = 0;
+	yMax = p->maiorY + (p->maiorY*0.2);
+	for(i = 1; i < n; i++)
+	{
+		x = geraNum(xMin,xMax);
+		y = geraNum(yMin,yMax);
+		if(y <= AvaliaSpline(p,s2,x))
+		{
+			numAbaixo++;
+		}
+	}
+	AreaTotal = (xMax - xMin)*(yMax - yMin);
+	Area = AreaTotal*(numAbaixo/n);
+	return Area;
+}
+
+/*Requisito 07 - TVMI*/
+double TVMI(double a, double b, double integral)
+{
+	return((1/(b-a))*integral);
+}
+
+/*Requisito 08 - Saida Terminal*/
+void SaidaTerminal(Points p, double mem, const char *str)
+{
+	printf("Number of Samples : %d\n", p->numPontos);
+	printf("Average Memory Usage : %.3lf Kb \n", mem);
+	printf("\nRun 'Rscript %s.r' to generate Avarage Momory Usage Chart\n", str);
+}
+
+/*Requisito 09 - Script*/
+void SaidaR(Points p, double med, const char *str)
+{
+
 }
