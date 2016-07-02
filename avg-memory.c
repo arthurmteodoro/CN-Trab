@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+#include <string.h>
 
 /*Criação das Estruturas usadas*/
 typedef struct ponto
@@ -37,15 +37,19 @@ double geraNum(double min, double max);
 double IntegralMonteCarlo(long 	int n, Points p, double* s2);
 double TVMI(double a, double b, double integral);
 void SaidaTerminal(Points p, double mem, const char *str);
-void SaidaR(Points p, double med, const char *str);
+void SaidaR(Points p, double med, const char *str, double *s2);
 
 /*Desenvolvimento das Funções*/
 int main(int argc, char const *argv[])
 {
 	int i;
+	double integral, tvmi;
 	Points table = carregaArquivo(argv[1]);
 	double *s2 = CalculaDerivadaSpline(table);
-	SaidaTerminal(table,TVMI(table->menorX,table->maiorX,IntegralMonteCarlo(1000,table,s2)),argv[2]);
+	integral = IntegralMonteCarlo(1000,table,s2);
+	tvmi = TVMI(table->menorX,table->maiorX,integral);
+	SaidaTerminal(table,tvmi,argv[2]);
+	SaidaR(table,tvmi,argv[2],s2);
 	free(s2);
 	destroiPoints(table);
 	return 0;
@@ -253,7 +257,76 @@ void SaidaTerminal(Points p, double mem, const char *str)
 }
 
 /*Requisito 09 - Script*/
-void SaidaR(Points p, double med, const char *str)
+void SaidaR(Points p, double med, const char *str, double *s2)
 {
-
+	char *Rarq = (char*) malloc(sizeof(char)*(strlen(str)+2));
+	char *PNGarq = (char*) malloc(sizeof(char)*(strlen(str)+4));
+	strcpy(Rarq,str);
+	strcpy(PNGarq,str);
+	strcat(Rarq,".r");
+	strcat(PNGarq,".png");
+	FILE *arq;
+	int i;
+	double pnt;
+	char aspas = '"';
+	arq = fopen(Rarq, "wt");
+	fprintf(arq, "#\n");
+	fprintf(arq, "# Generated automatically by ''avg-memory'' application\n");
+	fprintf(arq, "#\n\n");
+	fprintf(arq, "# Original points (x cordinates)\n");
+	fprintf(arq, "xorig <- c(\n");
+	for(i=1; i <= p->numPontos; i++)
+	{
+		if(i != p->numPontos)
+		{
+			fprintf(arq, "\t%lf,\n", p->pontos[i].x);
+		}
+		else
+		{
+			fprintf(arq, "\t%lf\n", p->pontos[i].x);
+		}
+	}
+	fprintf(arq, ");\n\n");
+	fprintf(arq, "# Original points (y cordinates)\n");
+	fprintf(arq, "yorig <- c(\n");
+	for(i=1; i <= p->numPontos; i++)
+	{
+		if(i != p->numPontos)
+		{
+			fprintf(arq, "\t%lf,\n", p->pontos[i].y);
+		}
+		else
+		{
+			fprintf(arq, "\t%lf\n", p->pontos[i].y);
+		}
+	}
+	fprintf(arq, ");\n\n");
+	fprintf(arq, "# Spline points (x cordinates, sampling interval = 0.01)\n");
+	fprintf(arq, "xspl <- c(\n");
+	for(pnt=p->menorX; pnt <= (p->maiorX-0.01); pnt = pnt + 0.01)
+	{
+		fprintf(arq, "\t%lf,\n", pnt);
+	}
+  fprintf(arq, "\t%lf\n", p->maiorX);
+  fprintf(arq, ");\n\n");
+  fprintf(arq, "# Splines points (y cordinates, sampling interval = 0.01)\n");
+  fprintf(arq, "yspl <- c(\n");
+  for(pnt=p->menorX; pnt <= (p->maiorX-0.01); pnt = pnt + 0.01)
+	{
+		fprintf(arq, "\t%lf,\n", AvaliaSpline(p,s2,pnt));
+	}
+	fprintf(arq, "\t%lf\n", AvaliaSpline(p,s2,p->maiorX));
+	fprintf(arq, ");\n\n");
+	fprintf(arq, "# Average Memory Usage\n");
+	fprintf(arq, "AvgMemory <- %lf;\n\n", med);
+	fprintf(arq, "# Plot the values in .png file\n");
+	fprintf(arq, "png(file=%c%s%c, width=1200);\n",aspas,PNGarq,aspas);
+	fprintf(arq, "title <- paste(%cAVG Memory Usage: %lf Kb (%d Samples)%c);\n", aspas,med,p->numPontos,aspas);
+	fprintf(arq, "plot(xspl, yspl, type=%cl%c, col=%cblue%c, main=title, xlab=%cSamples%c, ylab=%cMem. Usage%c, lwd=3);\n", aspas,aspas,aspas,aspas,aspas,aspas,aspas,aspas);
+	fprintf(arq, "points(xorig, yorig, pch=19, col=%cred%c);\n", aspas,aspas);
+	fprintf(arq, "lines( c(min(xorig), max(xorig)), c(AvgMemory, AvgMemory), col=%cblack%c, lty=12, lwd=3);\n", aspas,aspas);
+	fprintf(arq, "dev.off();");
+	fclose(arq);
+	free(Rarq);
+	free(PNGarq);
 }
