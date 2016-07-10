@@ -1,15 +1,18 @@
-/*
-	Trabalho de Cálculo Numérico - 2016
-  Nome : Arthur Alexsander Martins Teodoro    Matricula : 0022427
-         Saulo Ricardo Dias Fernandes         Matricula : 0021581
-  Data : 23/06/2016
-*/
+/*==================================================================================================*/
+/*                             Trabalho de Cálculo Numérico - 2016                                  */
+/*                 Nome : Arthur Alexsander Martins Teodoro    Matricula : 0022427                  */
+/*                 Nome : Saulo Ricardo Dias Fernandes         Matricula : 0021581                  */
+/*                                     Data : 23/06/2016                                            */
+/*==================================================================================================*/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>  
 
-/*Criação das Estruturas usadas*/
+/*==================================================================================================*/
+/*===================================Criação das Estruturas Usadas==================================*/
+/*==================================================================================================*/  
 typedef struct ponto
 {
 	double x;
@@ -24,11 +27,13 @@ struct points
 	double maiorY;
 	double menorX;
 	double menorY;
-};
+};	
 
 typedef struct points *Points;
 
-/*Declaração de Protótipos das funções*/
+/*==================================================================================================*/
+/*===============================Declaração de protótipo das funções================================*/
+/*==================================================================================================*/
 Points carregaArquivo(const char *arq);
 void destroiPoints(Points p);
 double* CalculaDerivadaSpline(Points p);
@@ -39,14 +44,16 @@ double TVMI(double a, double b, double integral);
 void SaidaTerminal(Points p, double mem, const char *str);
 void SaidaR(Points p, double med, const char *str, double *s2);
 
-/*Desenvolvimento das Funções*/
+/*==================================================================================================*/
+/*==========================================Função Principal========================================*/
+/*==================================================================================================*/
 int main(int argc, char const *argv[])
 {
-	int i;
+	srand(time(NULL));
 	double integral, tvmi;
 	Points table = carregaArquivo(argv[1]);
 	double *s2 = CalculaDerivadaSpline(table);
-	integral = IntegralMonteCarlo(1000,table,s2);
+	integral = IntegralMonteCarlo(10000000,table,s2);
 	tvmi = TVMI(table->menorX,table->maiorX,integral);
 	SaidaTerminal(table,tvmi,argv[2]);
 	SaidaR(table,tvmi,argv[2],s2);
@@ -55,7 +62,11 @@ int main(int argc, char const *argv[])
 	return 0;
 }
 
-/*Requesito 2 - Ler o arquivo com os valores*/
+/*==================================================================================================*/
+/*                         REQUESITO 2 - ENTRADA DE DADOS (ARQUIVO)                                 */
+/*                    LE O ARQUIVO E COLOCA OS DADOS NA ESTRUTURA CRIADA                            */
+/*IN = NOME DO ARQUIVO                                               OUT = PONTEIRO PARA A ESTRUTURA*/
+/*==================================================================================================*/
 Points carregaArquivo(const char *arq)
 {
 	int i, quant = 0;
@@ -114,6 +125,11 @@ Points carregaArquivo(const char *arq)
 	return aux;
 }
 
+/*==================================================================================================*/
+/*                                           DESTROI PONTOS                                         */
+/*                                      DESALOCA A ESTRUTURA USADA                                  */
+/*IN = ESTRUTURA POINTS                                                                   OUT = VOID*/
+/*==================================================================================================*/
 void destroiPoints(Points p)
 {
 	free(p->pontos);
@@ -121,7 +137,11 @@ void destroiPoints(Points p)
 	p = NULL;
 }
 
-/*Requesito 3 - Calcular as derivadas das Splines*/
+/*==================================================================================================*/
+/*                           REQUESITO 3 - CALCULO DAS DERIVIDAS SEGUNDAS                           */
+/*                              CALCULA AS DERIVADAS DA SPLINE CÚBICA                               */
+/*IN = ESTRUTURA COM OS PONTOS                                   OUT = PONTEIRO PARA VETOR DE DOUBLE*/
+/*==================================================================================================*/
 double* CalculaDerivadaSpline(Points p)
 {
   if(p->numPontos < 3)
@@ -172,7 +192,11 @@ double* CalculaDerivadaSpline(Points p)
   return s2;
 }
 
-/*Requesito 4 - Avaliar e Gerar o polinomio da Spline*/
+/*==================================================================================================*/
+/*                                    REQUESITO 4 - AVALIA SPLINE                                   */
+/*                                  AVALIA A FUNÇÃO INTERPOLADA P(x)                                */
+/*IN = 	ESTRUTURA P, VETOR DE DERIVADAS, VALOR A INTERPOLAR                 OUT = Y DE X INTERPOLADO*/
+/*==================================================================================================*/
 double AvaliaSpline(Points p, double* s2, double valor)
 {
 	if((valor < p->pontos[1].x) || (valor > p->pontos[p->numPontos].x))
@@ -211,13 +235,21 @@ double AvaliaSpline(Points p, double* s2, double valor)
 	return resultado;
 }
 
-/*Requesito 5 - Gerador de Números Uniformes*/
+/*==================================================================================================*/
+/*                         REQUESITO 5 - GERADOR DE NÚMEROS UNIFORMES                               */
+/*                    CRIA UM NUMERO ALEATORIA SEGUINDO DISTRIBUIÇÃO UNIFORME                       */
+/*IN = VALOR MAXIMO, VALOR MÍNIMO                                              OUT = VALOR ALEATORIO*/
+/*==================================================================================================*/
 double geraNum(double min, double max)
 {
 	return (rand()/(double)RAND_MAX)*(max-min)+min;
 }
 
-/*Requisito 6 - Integral por MonteCarlo*/
+/*==================================================================================================*/
+/*                           REQUESITO 6 - INTEGRAL POR MONTE CARLO                                 */
+/*                      CALCULA A INTEGRAL NUMÉRICA PELO MÉTODO DE MONTE CARLO                      */
+/*IN = NOME DO ARQUIVO                                               OUT = PONTEIRO PARA A ESTRUTURA*/
+/*==================================================================================================*/
 double IntegralMonteCarlo(long int n, Points p, double* s2)
 {
 	/*Declaração das variaveis*/
@@ -228,7 +260,7 @@ double IntegralMonteCarlo(long int n, Points p, double* s2)
 	xMax = p->maiorX;	
 	yMin = 0;
 	yMax = p->maiorY + (p->maiorY*0.2);
-	for(i = 1; i < n; i++)
+	for(i = 1; i <= n; i++)
 	{
 		x = geraNum(xMin,xMax);
 		y = geraNum(yMin,yMax);
@@ -242,13 +274,21 @@ double IntegralMonteCarlo(long int n, Points p, double* s2)
 	return Area;
 }
 
-/*Requisito 07 - TVMI*/
+/*==================================================================================================*/
+/*                                        REQUESITO 7 - TVMI                                        */
+/*                 CALCULA O VALOR MÉDIO PELO TEOREMA DO VALOR MÉDIO DAS INTEGRAIS                  */
+/*IN = VALOR A, VALOR B, INTEGRAL                                        OUT = VALOR MÉDIO CALCULADO*/
+/*==================================================================================================*/
 double TVMI(double a, double b, double integral)
 {
-	return((1/(b-a))*integral);
+	return ((1/(b-a))*integral);
 }
 
-/*Requisito 08 - Saida Terminal*/
+/*==================================================================================================*/
+/*                                REQUESITO 8 - SAIDA NO TERMINAL                                   */
+/*                                   REALIZA A SAIDA NO TERMINAL                                    */
+/*IN = PONTOS P, VALOR MÉDIO, ARQUIVO DE SAÍDA                                            OUT = VOID*/
+/*==================================================================================================*/
 void SaidaTerminal(Points p, double mem, const char *str)
 {
 	printf("Number of Samples : %d\n", p->numPontos);
@@ -256,24 +296,31 @@ void SaidaTerminal(Points p, double mem, const char *str)
 	printf("\nRun 'Rscript %s.r' to generate Avarage Momory Usage Chart\n", str);
 }
 
-/*Requisito 09 - Script*/
+/*==================================================================================================*/
+/*                            REQUESITO 9 - SAIDA DE DADOS R SCRIPT                                 */
+/*                                    REALIZA A SAIDA EM R SCRIPT                                   */
+/*IN = PONTOS P, VALOR MÉDIO, ARQUIVO DE SAIDA, PONTEIRO DERIVADAS                        OUT = VOID*/
+/*==================================================================================================*/
 void SaidaR(Points p, double med, const char *str, double *s2)
 {
+	/*Concatenação das strings*/
 	char *Rarq = (char*) malloc(sizeof(char)*(strlen(str)+2));
 	char *PNGarq = (char*) malloc(sizeof(char)*(strlen(str)+4));
 	strcpy(Rarq,str);
 	strcpy(PNGarq,str);
 	strcat(Rarq,".r");
 	strcat(PNGarq,".png");
+	/*Criação das variáveis*/
 	FILE *arq;
 	int i;
 	double pnt;
 	char aspas = '"';
 	arq = fopen(Rarq, "wt");
 	fprintf(arq, "#\n");
-	fprintf(arq, "# Generated automatically by ''avg-memory'' application\n");
+	fprintf(arq, "# Generated automatically by %cavg-memory%c application\n",aspas,aspas);
 	fprintf(arq, "#\n\n");
 	fprintf(arq, "# Original points (x cordinates)\n");
+	/*Escreve o vetor X original*/
 	fprintf(arq, "xorig <- c(\n");
 	for(i=1; i <= p->numPontos; i++)
 	{
@@ -287,6 +334,7 @@ void SaidaR(Points p, double med, const char *str, double *s2)
 		}
 	}
 	fprintf(arq, ");\n\n");
+	/*Escreve o Y Original*/
 	fprintf(arq, "# Original points (y cordinates)\n");
 	fprintf(arq, "yorig <- c(\n");
 	for(i=1; i <= p->numPontos; i++)
@@ -302,6 +350,7 @@ void SaidaR(Points p, double med, const char *str, double *s2)
 	}
 	fprintf(arq, ");\n\n");
 	fprintf(arq, "# Spline points (x cordinates, sampling interval = 0.01)\n");
+	/*Imprime o x de 0.01 em 0.01*/
 	fprintf(arq, "xspl <- c(\n");
 	for(pnt=p->menorX; pnt <= (p->maiorX-0.01); pnt = pnt + 0.01)
 	{
@@ -310,6 +359,7 @@ void SaidaR(Points p, double med, const char *str, double *s2)
   fprintf(arq, "\t%lf\n", p->maiorX);
   fprintf(arq, ");\n\n");
   fprintf(arq, "# Splines points (y cordinates, sampling interval = 0.01)\n");
+  /*Imprime o vetor de Y Interpolado*/
   fprintf(arq, "yspl <- c(\n");
   for(pnt=p->menorX; pnt <= (p->maiorX-0.01); pnt = pnt + 0.01)
 	{
